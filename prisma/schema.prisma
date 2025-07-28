@@ -13,3 +13,87 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(SELLER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store?
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  products Product[]
+  orders   Order[]
+}
+
+enum Role {
+  ADMIN
+  SELLER
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  mame        String
+  description String
+  price       Float
+  sku         String        @unique
+  storeId     String
+  quantity    Int
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  Store      Store       @relation(fields: [storeId], references: [id])
+  orderItems OrderItem[]
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  OUT_OF_STOCK
+  ARCHIVED
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  total     Float
+  status    OrderStatus @default(PENDING)
+  storeId   String
+  customer  String
+  createdAt DateTime    @default(now())
+
+  Store Store       @relation(fields: [storeId], references: [id])
+  items OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Int
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
