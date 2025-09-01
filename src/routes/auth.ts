@@ -44,7 +44,7 @@ router.post("/register", async (req, res) => {
         include: { store: true },
       });
     });
-
+    
     res.status(201).json(result);
   } catch (err) {
     console.error(err);
