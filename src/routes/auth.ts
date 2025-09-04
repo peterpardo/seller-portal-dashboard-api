@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { compare, genSalt, hash } from "bcryptjs";
 import { generateUniqueStoreSlug } from "../utils/slug";
-import jwt from "jsonwebtoken";
+import { generateAccessToken } from "../utils/jwt";
 
 const router = Router();
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS as string);
@@ -12,10 +12,10 @@ router.post("/register", async (req, res) => {
   const { name, email, password, role } = req.body;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const user = await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({ where: { email } });
       if (existingUser) {
-        return res.status(400).json({ message: "Email already in use" });
+        throw new Error("EMAIL_IN_USE");
       }
 
       const SELLER_ROLE = "SELLER";
@@ -45,8 +45,14 @@ router.post("/register", async (req, res) => {
       });
     });
 
-    res.status(201).json(result);
-  } catch (err) {
+    const token = generateAccessToken({ id: user.id, role: user.role });
+
+    res.status(201).json({ user, token });
+  } catch (err: any) {
+    if (err.message === "EMAIL_IN_USE") {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
     res.status(500).json({ message: "Something went wrong" });
   }
 });
@@ -70,14 +76,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     // generate access token
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-      },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1d" }
-    );
+    const token = generateAccessToken({ id: user.id, role: user.role });
 
     return res.json({ user, token });
   } catch (err) {
