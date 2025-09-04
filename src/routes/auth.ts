@@ -44,10 +44,9 @@ router.post("/register", async (req, res) => {
         include: { store: true },
       });
     });
-    
+
     res.status(201).json(result);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
@@ -82,7 +81,6 @@ router.post("/login", async (req, res) => {
 
     return res.json({ user, token });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
